@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" name="uwt.AppTest" time="0.022" tests="1" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" name="uwt.AppTest" time="0.03" tests="1" errors="0" skipped="0" failures="0">
   <properties>
     <property name="gopherProxySet" value="false"/>
     <property name="awt.toolkit" value="sun.lwawt.macosx.LWCToolkit"/>
@@ -17,7 +17,7 @@
     <property name="user.country" value="US"/>
     <property name="sun.java.launcher" value="SUN_STANDARD"/>
     <property name="sun.boot.library.path" value="/Library/Java/JavaVirtualMachines/jdk1.8.0_161.jdk/Contents/Home/jre/lib"/>
-    <property name="sun.java.command" value="/Users/putthidasr/eclipse-workspace/AWS-Lambda-TLQ/app/composition1/target/surefire/surefirebooter8559150280004301373.jar /Users/putthidasr/eclipse-workspace/AWS-Lambda-TLQ/app/composition1/target/surefire 2019-11-24T07-22-50_524-jvmRun1 surefire2853619358529438845tmp surefire_05771611247087682563tmp"/>
+    <property name="sun.java.command" value="/Users/putthidasr/eclipse-workspace/AWS-Lambda-TLQ/app/composition1/target/surefire/surefirebooter1561288036858451795.jar /Users/putthidasr/eclipse-workspace/AWS-Lambda-TLQ/app/composition1/target/surefire 2019-11-24T07-30-30_248-jvmRun1 surefire5702700341730832639tmp surefire_03926552791777075458tmp"/>
     <property name="http.nonProxyHosts" value="local|*.local|169.254/16|*.169.254/16"/>
     <property name="surefire.test.class.path" value="/Users/putthidasr/eclipse-workspace/AWS-Lambda-TLQ/app/composition1/target/test-classes:/Users/putthidasr/eclipse-workspace/AWS-Lambda-TLQ/app/composition1/target/classes:/Users/putthidasr/.m2/repository/junit/junit/4.11/junit-4.11.jar:/Users/putthidasr/.m2/repository/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar:"/>
     <property name="sun.cpu.endian" value="little"/>
@@ -31,7 +31,7 @@
     <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
     <property name="java.specification.name" value="Java Platform API Specification"/>
     <property name="java.awt.graphicsenv" value="sun.awt.CGraphicsEnvironment"/>
-    <property name="surefire.real.class.path" value="/Users/putthidasr/eclipse-workspace/AWS-Lambda-TLQ/app/composition1/target/surefire/surefirebooter8559150280004301373.jar"/>
+    <property name="surefire.real.class.path" value="/Users/putthidasr/eclipse-workspace/AWS-Lambda-TLQ/app/composition1/target/surefire/surefirebooter1561288036858451795.jar"/>
     <property name="sun.boot.class.path" value="/Library/Java/JavaVirtualMachines/jdk1.8.0_161.jdk/Contents/Home/jre/lib/resources.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_161.jdk/Contents/Home/jre/lib/rt.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_161.jdk/Contents/Home/jre/lib/sunrsasign.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_161.jdk/Contents/Home/jre/lib/jsse.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_161.jdk/Contents/Home/jre/lib/jce.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_161.jdk/Contents/Home/jre/lib/charsets.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_161.jdk/Contents/Home/jre/lib/jfr.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_161.jdk/Contents/Home/jre/classes"/>
     <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
     <property name="ftp.nonProxyHosts" value="local|*.local|169.254/16|*.169.254/16"/>
@@ -61,5 +61,5 @@
     <property name="java.class.version" value="52.0"/>
     <property name="socksNonProxyHosts" value="local|*.local|169.254/16|*.169.254/16"/>
   </properties>
-  <testcase name="shouldAnswerWithTrue" classname="uwt.AppTest" time="0.002"/>
+  <testcase name="shouldAnswerWithTrue" classname="uwt.AppTest" time="0.001"/>
 </testsuite>
