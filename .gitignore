@@ -4,6 +4,8 @@
 **/target
 **/.DS_Store
 **/.project
-.DS_Store
-app/composition1/target/classes/uwt/App.class
-app/composition1/target/test-classes/uwt/AppTest.class
+app/bin/*
+app/composition1/target/*
+app/composition2/target/*
+app/composition3/target/*
+app/composition4/target/*
