@@ -1,1 +1,7 @@
+uwt/model/Request.class
+uwt/inspector/Inspector.class
+uwt/lambda/QueryService.class
+uwt/model/Response.class
+uwt/lambda/LoadService.class
+uwt/lambda/TransformService.class
 uwt/App.class

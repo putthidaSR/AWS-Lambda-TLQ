@@ -1,1 +1,7 @@
+/Users/putthidasr/eclipse-workspace/AWS-Lambda-TLQ/app/composition1/src/main/java/uwt/model/Response.java
 /Users/putthidasr/eclipse-workspace/AWS-Lambda-TLQ/app/composition1/src/main/java/uwt/App.java
+/Users/putthidasr/eclipse-workspace/AWS-Lambda-TLQ/app/composition1/src/main/java/uwt/lambda/LoadService.java
+/Users/putthidasr/eclipse-workspace/AWS-Lambda-TLQ/app/composition1/src/main/java/uwt/lambda/TransformService.java
+/Users/putthidasr/eclipse-workspace/AWS-Lambda-TLQ/app/composition1/src/main/java/uwt/inspector/Inspector.java
+/Users/putthidasr/eclipse-workspace/AWS-Lambda-TLQ/app/composition1/src/main/java/uwt/model/Request.java
+/Users/putthidasr/eclipse-workspace/AWS-Lambda-TLQ/app/composition1/src/main/java/uwt/lambda/QueryService.java

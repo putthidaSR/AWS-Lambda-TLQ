@@ -5,3 +5,5 @@
 **/.DS_Store
 **/.project
 .DS_Store
+app/composition1/target/classes/uwt/App.class
+app/composition1/target/test-classes/uwt/AppTest.class
