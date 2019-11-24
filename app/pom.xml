@@ -7,10 +7,8 @@
   <groupId>uwt</groupId>
   <artifactId>app</artifactId>
   <version>1.0-SNAPSHOT</version>
-
+  <packaging>pom</packaging>
   <name>app</name>
-  <!-- FIXME change it to the project's website -->
-  <url>http://www.example.com</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
