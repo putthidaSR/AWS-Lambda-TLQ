@@ -15,7 +15,7 @@ import model.Response;
 /**
  * The purpose of this class is to perform filtering and aggregation of data queries on data loaded into SQLite relational database.
  */
-public class LoadService implements RequestHandler<Request, HashMap<String, Object>> {
+public class QueryService implements RequestHandler<Request, HashMap<String, Object>> {
 
 	private LambdaLogger logger; // Lambda runtime logger
 
