@@ -20,6 +20,7 @@ import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.S3ObjectInputStream;
 
 import uwt.exception.DataTransformationException;
 import uwt.inspector.Inspector;
@@ -50,7 +51,7 @@ public class TransformService implements RequestHandler<Request, HashMap<String,
 	public HashMap<String, Object> handleRequest(Request request, Context context) {
 
 		// Create logger
-		logger = context.getLogger();
+		LambdaLogger logger = context.getLogger();
 		logger.log("Begin data transformation service");
 
 		// Collect inital data.
@@ -59,6 +60,7 @@ public class TransformService implements RequestHandler<Request, HashMap<String,
 
 		String bucketName = request.getBucketName();
 		String fileName = request.getFileName();
+		logger.log(">>> " + bucketName + ", " + fileName);
 
 		// Get the object file from S3
 		logger.log(String.format("Attempt to read file [%s] from S3 bucket: %s", fileName, bucketName));
@@ -67,7 +69,7 @@ public class TransformService implements RequestHandler<Request, HashMap<String,
 		logger.log(String.format("Retrieve file [%s] from S3 bucket: %s", fileName, bucketName));
 
 		// Get content of the file
-		InputStream objectData = s3Object.getObjectContent();
+		S3ObjectInputStream objectData = s3Object.getObjectContent();
 
 		// Transform the input data and return character stream that will be used to
 		// write a new file
@@ -81,8 +83,7 @@ public class TransformService implements RequestHandler<Request, HashMap<String,
 		meta.setContentLength(bytes.length);
 		meta.setContentType("text/plain");
 
-		String[] names = fileName.split("/");
-		String newFileNameAfterDataTransform = "TransformedData/" + names[names.length - 1];
+		String newFileNameAfterDataTransform = "TransformedData";
 		logger.log(String.format("Attempt to create new file [%s] on S3 bucket [%s]", newFileNameAfterDataTransform,
 				bucketName));
 
