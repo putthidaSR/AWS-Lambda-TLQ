@@ -45,7 +45,7 @@ public class LoadService implements RequestHandler<Request, HashMap<String, Obje
 
 		// Create logger
 		LambdaLogger logger = context.getLogger();
-		logger.log("Begin data transformation service");
+		logger.log("Begin data load service");
 
 		// Register function
 		Inspector inspector = new Inspector();
@@ -66,10 +66,7 @@ public class LoadService implements RequestHandler<Request, HashMap<String, Obje
 		String bucketName = request.getBucketName();
 		String fileName = request.getFileName();
 
-		// TODO: must match naming format in bash script
-		String[] names = fileName.split("/");
-		String dbname = names[names.length - 1] + ".db";
-		dbname = dbname.replace(' ', '_');
+		String dbname = "transformData.db";
 
 		// TODO: Get the object file from S3 (naming from must match whatever specified
 		// in Transformation Service)
@@ -88,7 +85,12 @@ public class LoadService implements RequestHandler<Request, HashMap<String, Obje
 		try {
 
 			// Connection string for a file-based SQlite DB
-			Connection con = DriverManager.getConnection("jdbc:sqlite:" + dbname);
+			//Connection con = DriverManager.getConnection("jdbc:sqlite:" + dbname);
+			
+			String url = "jdbc:sqlite:transformData.db";
+			Connection con = DriverManager.getConnection(url);
+			
+			logger.log("Connection to SQLite has been established.");
 
 			// Detect if the table 'salesrecords' exists in the database
 			PreparedStatement ps = con
@@ -175,8 +177,8 @@ public class LoadService implements RequestHandler<Request, HashMap<String, Obje
 		scanner.close();
 		File file = new File("/tmp/" + dbname);
 
-		// TODO: must match unique bucket name on S3
-		s3Client.putObject("tcss562.group7.project", "SalesRecordsDB/" + dbname, file);
+		//s3Client.putObject(new PutObjectRequest(bucketName, "SalesRecordsDB/" + dbname , file)); 
+		s3Client.putObject(bucketName, "SalesRecordsDB/" + dbname, file);
 		file.delete();
 
 		// Create and populate a separate response object for function output
