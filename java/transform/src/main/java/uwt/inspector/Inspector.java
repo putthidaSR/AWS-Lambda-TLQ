@@ -35,6 +35,12 @@ public class Inspector {
     private final HashMap<String, Object> attributes;
     private final long startTime;
 
+    private boolean inspectedCPU = false;
+    private boolean inspectedMemory = false;
+    private boolean inspectedContainer = false;
+    private boolean inspectedPlatform = false;
+    private boolean inspectedLinux = false;
+
     /**
      * Initialize Inspector.
      *
@@ -46,7 +52,7 @@ public class Inspector {
         startTime = System.currentTimeMillis();
         attributes = new HashMap<>();
 
-        attributes.put("version", 0.31);
+        attributes.put("version", 0.4);
         attributes.put("lang", "java");
     }
 
@@ -58,16 +64,14 @@ public class Inspector {
      * vmuptime:     The time when the system started in Unix time.
      */
     public void inspectContainer() {
-
-        File f;
-        Path p;
+        inspectedContainer = true;
 
         //Stamp Container
         int newContainer;
         String uuid = "";
 
-        f = new File("/tmp/container-id");
-        p = Paths.get("/tmp/container-id");
+        File f = new File("/tmp/container-id");
+        Path p = Paths.get("/tmp/container-id");
         if (f.exists()) {
             newContainer = 0;
             try (BufferedReader br = Files.newBufferedReader(p)) {
@@ -130,6 +134,7 @@ public class Inspector {
      * contextSwitches: Number of context switches.
      */
     public void inspectCPU() {
+        inspectedCPU = true;
 
         String text;
         int start;
@@ -198,36 +203,39 @@ public class Inspector {
      * contextSwitchesDelta: Number of context switches.
      */
     public void inspectCPUDelta() {
+        if (inspectedCPU) {
+            String text;
 
-        String text;
+            //Get CPU Metrics
+            String filename = "/proc/stat";
+            File f = new File(filename);
+            Path p = Paths.get(filename);
+            if (f.exists()) {
+                try (BufferedReader br = Files.newBufferedReader(p)) {
+                    text = br.readLine();
+                    String params[] = text.split(" ");
 
-        //Get CPU Metrics
-        String filename = "/proc/stat";
-        File f = new File(filename);
-        Path p = Paths.get(filename);
-        if (f.exists()) {
-            try (BufferedReader br = Files.newBufferedReader(p)) {
-                text = br.readLine();
-                String params[] = text.split(" ");
+                    String[] metricNames = {"cpuUsr", "cpuNice", "cpuKrn", "cpuIdle",
+                        "cpuIowait", "cpuIrq", "cpuSoftIrq", "vmcpusteal"};
 
-                String[] metricNames = {"cpuUsr", "cpuNice", "cpuKrn", "cpuIdle",
-                    "cpuIowait", "cpuIrq", "cpuSoftIrq", "vmcpusteal"};
-
-                for (int i = 0; i < metricNames.length; i++) {
-                    attributes.put(metricNames[i] + "Delta", Long.parseLong(params[i + 2]) - (Long)attributes.get(metricNames[i]));
-                }
-
-                while ((text = br.readLine()) != null && text.length() != 0) {
-                    if (text.contains("ctxt")) {
-                        String prms[] = text.split(" ");
-                        attributes.put("contextSwitchesDelta", Long.parseLong(prms[1]) - (Long)attributes.get("contextSwitches"));
+                    for (int i = 0; i < metricNames.length; i++) {
+                        attributes.put(metricNames[i] + "Delta", Long.parseLong(params[i + 2]) - (Long)attributes.get(metricNames[i]));
                     }
-                }
 
-                br.close();
-            } catch (IOException ioe) {
-                //sb.append("Error reading file=" + filename);
+                    while ((text = br.readLine()) != null && text.length() != 0) {
+                        if (text.contains("ctxt")) {
+                            String prms[] = text.split(" ");
+                            attributes.put("contextSwitchesDelta", Long.parseLong(prms[1]) - (Long)attributes.get("contextSwitches"));
+                        }
+                    }
+
+                    br.close();
+                } catch (IOException ioe) {
+                    //sb.append("Error reading file=" + filename);
+                }
             }
+        } else {
+            attributes.put("SAAFCPUDeltaError", "CPU not inspected before collecting deltas!");
         }
     }
 
@@ -241,6 +249,7 @@ public class Inspector {
      * 
      */
     public void inspectMemory() {
+        inspectedMemory = true;
         String memInfo = getFileAsString("/proc/meminfo");
         String[] lines = memInfo.split("\n");
         attributes.put("totalMemory", lines[0].replace("MemTotal:", "").replace("\t", "").replace(" kB", "").replace(" ", ""));
@@ -248,7 +257,7 @@ public class Inspector {
 
         String text;
 
-        //Get CPU Metrics
+        //Get Memory Metrics
         String filename = "/proc/vmstat";
         File f = new File(filename);
         Path p = Paths.get(filename);
@@ -278,75 +287,85 @@ public class Inspector {
      * majorPageFaultsDelta: The number of major pafe faults since inspectMemory was called.
      */
     public void inspectMemoryDelta() {
-        String text;
+        if (inspectedMemory) {
+            String text;
 
-        //Get CPU Metrics
-        String filename = "/proc/vmstat";
-        File f = new File(filename);
-        Path p = Paths.get(filename);
-        if (f.exists()) {
-            try (BufferedReader br = Files.newBufferedReader(p)) {
-                while ((text = br.readLine()) != null && text.length() != 0) {
-                    if (text.contains("pgfault")) {
-                        String prms[] = text.split(" ");
-                        attributes.put("pageFaultsDelta", Long.parseLong(prms[1]) - (Long)attributes.get("pageFaults"));
-                    } else if (text.contains("pgmajfault")) {
-                        String prms[] = text.split(" ");
-                        attributes.put("majorPageFaultsDelta", Long.parseLong(prms[1]) - (Long)attributes.get("majorPageFaults"));
+            //Get CPU Metrics
+            String filename = "/proc/vmstat";
+            File f = new File(filename);
+            Path p = Paths.get(filename);
+            if (f.exists()) {
+                try (BufferedReader br = Files.newBufferedReader(p)) {
+                    while ((text = br.readLine()) != null && text.length() != 0) {
+                        if (text.contains("pgfault")) {
+                            String prms[] = text.split(" ");
+                            attributes.put("pageFaultsDelta", Long.parseLong(prms[1]) - (Long)attributes.get("pageFaults"));
+                        } else if (text.contains("pgmajfault")) {
+                            String prms[] = text.split(" ");
+                            attributes.put("majorPageFaultsDelta", Long.parseLong(prms[1]) - (Long)attributes.get("majorPageFaults"));
+                        }
                     }
-                }
 
-                br.close();
-            } catch (IOException ioe) {
-                //sb.append("Error reading file=" + filename);
+                    br.close();
+                } catch (IOException ioe) {
+                    //sb.append("Error reading file=" + filename);
+                }
             }
+        } else {
+            attributes.put("SAAFMemoryDeltaError", "Memory not inspected before collecting deltas!");
         }
     }
 
     /**
      * Collect information about the current FaaS platform.
      *
-     * platform:    The FaaS platform hosting this function.
-     * containerID: A unique identifier for containers of a platform.
-     * vmID:        A unique identifier for virtual machines of a platform.
+     * platform:        The FaaS platform hosting this function.
+     * containerID:     A unique identifier for containers of a platform.
+     * vmID:            A unique identifier for virtual machines of a platform.
+     * functionName:    The name of the function.
+     * functionMemory:  The memory setting of the function.
+     * functionRegion:  The region the function is deployed onto.
      */
     public void inspectPlatform() {
-        String environment = runCommand(new String[]{"env"});
-        if (environment.contains("AWS_LAMBDA")) {
+        inspectedPlatform = true;
+
+        String key = System.getenv("AWS_LAMBDA_LOG_STREAM_NAME");
+        if (key != null) {
             attributes.put("platform", "AWS Lambda");
-            
-            String searchTerm = "AWS_LAMBDA_LOG_STREAM_NAME=";
-            int logIndex = environment.indexOf(searchTerm);
-            int startIndex = logIndex + searchTerm.length();
-            int endIndex = startIndex;
-            while (environment.charAt(endIndex) != '\n') endIndex++;
-            
-            attributes.put("containerID", environment.substring(startIndex, endIndex).replace("\n", ""));
-                    
+            attributes.put("containerID", key);
+            attributes.put("functionName", System.getenv("AWS_LAMBDA_FUNCTION_NAME"));
+            attributes.put("functionMemory", System.getenv("AWS_LAMBDA_FUNCTION_MEMORY_SIZE"));
+            attributes.put("functionRegion", System.getenv("AWS_REGION"));
+
             String vmID = runCommand(new String[]{"cat", "/proc/self/cgroup"});
             int index = vmID.indexOf("sandbox-root");
             attributes.put("vmID", vmID.substring(index + 13, index + 19));
-            
-        } else if (environment.contains("X_GOOGLE")) {
-            attributes.put("platform", "Google Cloud Functions");
-        } else if (environment.contains("functions.cloud.ibm")) {
-            attributes.put("platform", "IBM Cloud Functions");
-
-            attributes.put("vmID", runCommand(new String[]{"cat", "/sys/hypervisor/uuid"}).trim());
-
-        } else if (environment.contains("microsoft.com/azure-functions")) {
-            attributes.put("platform", "Azure Functions");
-            
-            String searchTerm = "CONTAINER_NAME=";
-            int logIndex = environment.indexOf(searchTerm);
-            int startIndex = logIndex + searchTerm.length();
-            int endIndex = startIndex;
-            while (environment.charAt(endIndex) != '\n') endIndex++;
-            
-            attributes.put("containerID", environment.substring(startIndex, endIndex).replace("\n", ""));
-            
         } else {
-            attributes.put("platform", "Unknown Platform");
+            key = System.getenv("X_GOOGLE_FUNCTION_NAME");
+            if (key != null) {
+                attributes.put("platform", "Google Cloud Functions");
+                attributes.put("functionName", key);
+                attributes.put("functionMemory", System.getenv("X_GOOGLE_FUNCTION_MEMORY_MB"));
+                attributes.put("functionRegion", System.getenv("X_GOOGLE_FUNCTION_REGION"));
+            } else {
+                key = System.getenv("__OW_ACTION_NAME");
+                if (key != null) {
+                    attributes.put("platform", "IBM Cloud Functions");
+                    attributes.put("functionName", key);
+                    attributes.put("functionRegion", System.getenv("__OW_API_HOST"));
+                    attributes.put("vmID", runCommand(new String[]{"cat", "/sys/hypervisor/uuid"}).trim());
+                } else {
+                    key = System.getenv("CONTAINER_NAME");
+                    if (key != null) {
+                        attributes.put("platform", "Azure Functions");
+                        attributes.put("containerID", key);
+                        attributes.put("functionName", "WEBSITE_SITE_NAME");
+                        attributes.put("functionRegion", System.getenv("Location"));
+                    } else {
+                        attributes.put("platform", "Unknown Platform");
+                    }
+                }
+            }
         }
     }
 
@@ -356,6 +375,7 @@ public class Inspector {
      * linuxVersion: The version of the linux kernel.
      */
     public void inspectLinux() {
+        inspectedLinux = true;
         String linuxVersion = runCommand(new String[]{"uname", "-v"}).trim();
         attributes.put("linuxVersion", linuxVersion);
     }
@@ -377,9 +397,11 @@ public class Inspector {
      * use code runtime from time spent collecting data.
      */
     public void inspectAllDeltas() {
-        Long currentTime = System.currentTimeMillis();
-        Long codeRuntime = (currentTime - startTime) - (Long)attributes.get("frameworkRuntime");
-        attributes.put("userRuntime", codeRuntime);
+        if (attributes.containsKey("frameworkRuntime")) {
+            Long currentTime = System.currentTimeMillis();
+            Long codeRuntime = (currentTime - startTime) - (Long)attributes.get("frameworkRuntime");
+            attributes.put("userRuntime", codeRuntime);
+        }
 
         this.inspectCPUDelta();
         this.inspectMemoryDelta();

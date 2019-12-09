@@ -20,7 +20,6 @@ import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectInputStream;
 
 import uwt.exception.DataTransformationException;
 import uwt.inspector.Inspector;
@@ -33,8 +32,6 @@ import uwt.model.Response;
  * transformed data to Amazon S3.
  */
 public class TransformService implements RequestHandler<Request, HashMap<String, Object>> {
-
-	private LambdaLogger logger; // Lambda runtime logger
 
 	/**
 	 * Lambda Function Handler to retrieve file from Amazon S3, perform data
@@ -69,11 +66,11 @@ public class TransformService implements RequestHandler<Request, HashMap<String,
 		logger.log(String.format("Retrieve file [%s] from S3 bucket: %s", fileName, bucketName));
 
 		// Get content of the file
-		S3ObjectInputStream objectData = s3Object.getObjectContent();
+        InputStream objectData = s3Object.getObjectContent();
 
 		// Transform the input data and return character stream that will be used to
 		// write a new file
-		StringWriter outputFile = transformData(objectData);
+		StringWriter outputFile = transformData(objectData, logger);
 
 		// Create metadata for describing the file to be written to S3 and create the
 		// new file on Amazon S3
@@ -83,7 +80,7 @@ public class TransformService implements RequestHandler<Request, HashMap<String,
 		meta.setContentLength(bytes.length);
 		meta.setContentType("text/plain");
 
-		String newFileNameAfterDataTransform = "TransformedData";
+		String newFileNameAfterDataTransform = "TransformedData.csv";
 		logger.log(String.format("Attempt to create new file [%s] on S3 bucket [%s]", newFileNameAfterDataTransform,
 				bucketName));
 
@@ -113,8 +110,9 @@ public class TransformService implements RequestHandler<Request, HashMap<String,
 	 *            Contents from the original CSV file
 	 * @return String of transformed data
 	 */
-	private StringWriter transformData(InputStream objectData) {
+	private StringWriter transformData(InputStream objectData, LambdaLogger logger) {
 
+		logger.log("Start reading file");
 		StringWriter outputFile = new StringWriter();
 
 		// Scanning data line by line
@@ -141,8 +139,12 @@ public class TransformService implements RequestHandler<Request, HashMap<String,
 				continue;
 			}
 			orderIdSet.add(orderId);
-
+			logger.log("Set of Order ID: " + orderIdSet.toString());
+			
 			// Calculate order processing days
+			//logger.log("Test order processing days: ");
+			//logger.log(token[5]);
+			//logger.log(token[7]);
 			long processingDays = getNumberOfProccessingDays(token[5], token[7]);
 			logger.log("Order processing days: " + processingDays);
 
@@ -192,8 +194,6 @@ public class TransformService implements RequestHandler<Request, HashMap<String,
 			shipDate = dateFormat.parse(shipDateString);
 
 		} catch (ParseException e) {
-
-			logger.log(String.format(DataTransformationException.FAIL_DATE_PARSING + " with exception: %s", e));
 			throw new DataTransformationException(DataTransformationException.FAIL_DATE_PARSING, e);
 		}
 
