@@ -43,81 +43,84 @@ public class LoadService implements RequestHandler<Request, HashMap<String, Obje
 	@Override
 	public HashMap<String, Object> handleRequest(Request request, Context context) {
 
+		// Create logger
+		LambdaLogger logger = context.getLogger();
+		logger.log("Begin data transformation service");
+
+		// Register function
+		Inspector inspector = new Inspector();
+		inspector.inspectAll();
+
+		setCurrentDirectory("/tmp");
+
 		/**
-		 * TODO:
-		 * - Scanning data line by line
-		 * - Create database called SaleRecords (Order_ID is primary key)
-		 * - Scan each line from input CSV file (retrieves from S3) and insert it to SaleRecords DB row by row
+		 * TODO plan: 
+		 * - Scanning data line by line 
+		 * - Create database called SaleRecords
+		 * (Order_ID is primary key) 
+		 * - Scan each line from input CSV file (retrieves
+		 * from S3) and insert it to SaleRecords DB row by row 
 		 * - Update the newly created DB as a file to S3
 		 */
 		
-		// Create logger
-        LambdaLogger logger = context.getLogger();
-		logger.log("Begin data transformation service");
-
-        // Register function
-        Inspector inspector = new Inspector();
-        inspector.inspectAll();
-
-		setCurrentDirectory("/tmp");
-		
 		String bucketName = request.getBucketName();
 		String fileName = request.getFileName();
-		
+
 		// TODO: must match naming format in bash script
 		String[] names = fileName.split("/");
 		String dbname = names[names.length - 1] + ".db";
 		dbname = dbname.replace(' ', '_');
 
-		// TODO: Get the object file from S3 (naming from must match whatever specified in Transformation Service) 
+		// TODO: Get the object file from S3 (naming from must match whatever specified
+		// in Transformation Service)
 		logger.log(String.format("Attempt to read file [%s] from S3 bucket: %s", fileName, bucketName));
 		AmazonS3 s3Client = AmazonS3ClientBuilder.standard().build();
 		S3Object s3Object = s3Client.getObject(new GetObjectRequest(bucketName, fileName));
 		logger.log(String.format("Retrieve file [%s] from S3 bucket: %s", fileName, bucketName));
 
 		// Get content of the file
-        InputStream objectData = s3Object.getObjectContent();
-        
+		InputStream objectData = s3Object.getObjectContent();
+
 		// Scan data line by line
 		Scanner scanner = new Scanner(objectData);
 		String line = scanner.nextLine();
 
 		try {
-			
+
 			// Connection string for a file-based SQlite DB
 			Connection con = DriverManager.getConnection("jdbc:sqlite:" + dbname);
 
 			// Detect if the table 'salesrecords' exists in the database
 			PreparedStatement ps = con
 					.prepareStatement("SELECT name FROM sqlite_master WHERE type='table' AND name='salesrecords'");
-			
+
 			ResultSet rs = ps.executeQuery();
-			
+
 			if (!rs.next()) {
-				
+
 				// 'salesrecords' does not exist, and should be created
 				logger.log("Attempting to create table 'salesrecords'");
-				
+
 				ps = con.prepareStatement(
-						"CREATE TABLE salesrecords (" + 
-								"Region text," + 
-								"Country text," + 
-								"Item_Type text," + 
-								"Sales_Channel text," + 
-								"Order_Priority text," + 
-								"Order_Date date," + 
-								"Order_ID integer PRIMARY KEY," + 
-								"Ship_Date date," + 
-								"Units_Sold integer," + 
-								"Unit_Price float," + 
-								"Unit_Cost float," + 
-								"Total_Revenue float," + 
-								"Total_Cost float," + 
-								"Total_Profit float," + 
-								"Order_Processing_Time integer," + 
-								"Gross_Margin float" + 
-						");");
-				
+					"CREATE TABLE salesrecords (" + 
+						"Region text," + 
+						"Country text," + 
+						"Item_Type text," + 
+						"Sales_Channel text," + 
+						"Order_Priority text," + 
+						"Order_Date date," + 
+						"Order_ID integer PRIMARY KEY," + 
+						"Ship_Date date," + 
+						"Units_Sold integer," + 
+						"Unit_Price float," + 
+						"Unit_Cost float," + 
+						"Total_Revenue float," + 
+						"Total_Cost float," + 
+						"Total_Profit float," + 
+						"Order_Processing_Time integer," + 
+						"Gross_Margin float" + 
+					");");
+
 				ps.execute();
 			}
 			rs.close();
@@ -134,7 +137,7 @@ public class LoadService implements RequestHandler<Request, HashMap<String, Obje
 
 			// Insert row into salesrecords
 			while (scanner.hasNext()) {
-				
+
 				line = scanner.nextLine();
 				line = line.replace("\'", "\'\'");
 				String[] token = line.split(",");
@@ -163,18 +166,18 @@ public class LoadService implements RequestHandler<Request, HashMap<String, Obje
 
 			con.close();
 			logger.log("DB insertion end.");
-			
+
 		} catch (SQLException sqle) {
 			logger.log("DB ERROR:" + sqle.toString());
 			sqle.printStackTrace();
 		}
-		
+
 		scanner.close();
-        File file = new File("/tmp/" + dbname);
-        
-        // TODO: must match unique bucket name on S3
-        s3Client.putObject("tcss562.group7.project", "SalesRecordsDB/" + dbname, file);
-        file.delete();
+		File file = new File("/tmp/" + dbname);
+
+		// TODO: must match unique bucket name on S3
+		s3Client.putObject("tcss562.group7.project", "SalesRecordsDB/" + dbname, file);
+		file.delete();
 
 		// Create and populate a separate response object for function output
 		Response response = new Response();

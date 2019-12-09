@@ -50,35 +50,33 @@ public class QueryService implements RequestHandler<Request, HashMap<String, Obj
 		inspector.inspectAll();
 
 		setCurrentDirectory("/tmp");
-				
+
 		/**
-		 * TODO:
-		 * - Detect database called SaleRecords from S3: SaleRecords DB must exist at this point (created in Service #2 - Load)
-		 * Connect to SQLite DB
-		 * - Detect database called SaleRecords (Order_ID is primary key)
-		 * - Create query based on the request parameters from bash script
-		 * - Write query result as JSON response output
-		 * - Display JSON response in terminal
-		 * - Consider write the JSON response output to a file and upload to S3
+		 * TODO: - Detect database called SaleRecords from S3: SaleRecords DB must exist
+		 * at this point (created in Service #2 - Load) Connect to SQLite DB - Detect
+		 * database called SaleRecords (Order_ID is primary key) - Create query based on
+		 * the request parameters from bash script - Write query result as JSON response
+		 * output - Display JSON response in terminal - Consider write the JSON response
+		 * output to a file and upload to S3
 		 */
 
-		String filter =  request.getFilter();
-        String aggregation =  request.getAggregation();
-        
-        String bucketname = request.getBucketname();
-        String filename = request.getFilename();
-        String[] names = filename.split("/");
-        String dbname = names[names.length - 1];
+		String filter = request.getFilter();
+		String aggregation = request.getAggregation();
 
-        AmazonS3 s3Client = AmazonS3ClientBuilder.standard().build();
-        
-        // Get db file using source bucket and srcKey name and save to /tmp
-        File file = new File("/tmp/" + dbname);
-        s3Client.getObject(new GetObjectRequest(bucketname, filename), file);
-        
-        // StringBuilder sb = new StringBuilder();
-        List<QueryResult> results = new LinkedList<>();
-        
+		String bucketname = request.getBucketname();
+		String filename = request.getFilename();
+		String[] names = filename.split("/");
+		String dbname = names[names.length - 1];
+
+		AmazonS3 s3Client = AmazonS3ClientBuilder.standard().build();
+
+		// Get db file using source bucket and srcKey name and save to /tmp
+		File file = new File("/tmp/" + dbname);
+		s3Client.getObject(new GetObjectRequest(bucketname, filename), file);
+
+		// StringBuilder sb = new StringBuilder();
+		List<QueryResult> results = new LinkedList<>();
+
         try {
         	
             // Connection string for a file-based SQlite DB
@@ -97,17 +95,17 @@ public class QueryService implements RequestHandler<Request, HashMap<String, Obj
                 throw new SQLException("No such table: 'salesrecords'");
             }
             rs.close();
-            
-            // create query from request
-            String query = "";
-            // Check if filter argument is passed
-            if (filter == null || filter.equals("") || filter.equals("*")) {
-                query = "SELECT " + aggregation + " FROM salesrecords";
-            } else { 
-                query = "SELECT " + aggregation + " FROM salesrecords WHERE " + filter;
-            }
-            ps = con.prepareStatement(query);
-            rs = ps.executeQuery();
+
+			// create query from request
+			String query = "";
+			// Check if filter argument is passed
+			if (filter == null || filter.equals("") || filter.equals("*")) {
+				query = "SELECT " + aggregation + " FROM salesrecords";
+			} else {
+				query = "SELECT " + aggregation + " FROM salesrecords WHERE " + filter;
+			}
+			ps = con.prepareStatement(query);
+			rs = ps.executeQuery();
 
 			// Write query result to output
 			String[] aggregations = aggregation.split(",");
