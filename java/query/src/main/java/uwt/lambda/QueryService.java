@@ -1,13 +1,24 @@
 package uwt.lambda;
 
 import java.io.File;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.model.GetObjectRequest;
 
 import uwt.inspector.Inspector;
+import uwt.model.QueryResult;
 import uwt.model.Request;
 import uwt.model.Response;
 
@@ -16,8 +27,6 @@ import uwt.model.Response;
  * The purpose of this class is to perform filtering and aggregation of data queries on data loaded into SQLite relational database.
  */
 public class QueryService implements RequestHandler<Request, HashMap<String, Object>> {
-
-	private LambdaLogger logger; // Lambda runtime logger
 
 	/**
 	 * Lambda Function Handler to perform filtering and aggregation of data queries on the local database SQLite.
@@ -33,10 +42,10 @@ public class QueryService implements RequestHandler<Request, HashMap<String, Obj
 	public HashMap<String, Object> handleRequest(Request request, Context context) {
 
 		// Create logger
-		logger = context.getLogger();
-		logger.log("Begin data filtering and aggregation service");
+		LambdaLogger logger = context.getLogger();
+		logger.log("Begin data transformation service");
 
-		// Collect inital data.
+		// Register function
 		Inspector inspector = new Inspector();
 		inspector.inspectAll();
 
@@ -53,9 +62,79 @@ public class QueryService implements RequestHandler<Request, HashMap<String, Obj
 		 * - Consider write the JSON response output to a file and upload to S3
 		 */
 
+		String filter =  request.getFilter();
+        String aggregation =  request.getAggregation();
+        
+        String bucketname = request.getBucketname();
+        String filename = request.getFilename();
+        String[] names = filename.split("/");
+        String dbname = names[names.length - 1];
+
+        AmazonS3 s3Client = AmazonS3ClientBuilder.standard().build();
+        
+        // Get db file using source bucket and srcKey name and save to /tmp
+        File file = new File("/tmp/" + dbname);
+        s3Client.getObject(new GetObjectRequest(bucketname, filename), file);
+        
+        // StringBuilder sb = new StringBuilder();
+        List<QueryResult> results = new LinkedList<>();
+        
+        try {
+        	
+            // Connection string for a file-based SQlite DB
+            Connection con = DriverManager.getConnection("jdbc:sqlite:" + dbname); 
+
+            // Detect if the table 'salesrecords' exists in the database
+            PreparedStatement ps = con.prepareStatement(
+            		"SELECT name FROM sqlite_master WHERE type='table' AND name='salesrecords'"
+                );
+            
+            ResultSet rs = ps.executeQuery();
+            
+            if (!rs.next()) {
+                // 'salesrecords' does not exist, throw exception
+                logger.log("No such table: 'salesrecords'");
+                throw new SQLException("No such table: 'salesrecords'");
+            }
+            rs.close();
+            
+            // create query from request
+            String query = "";
+            // Check if filter argument is passed
+            if (filter == null || filter.equals("") || filter.equals("*")) {
+                query = "SELECT " + aggregation + " FROM salesrecords";
+            } else { 
+                query = "SELECT " + aggregation + " FROM salesrecords WHERE " + filter;
+            }
+            ps = con.prepareStatement(query);
+            rs = ps.executeQuery();
+
+			// Write query result to output
+			String[] aggregations = aggregation.split(",");
+			if (rs.next()) {
+				for (int i = 0; i < aggregations.length; i++) {
+					query = aggregations[i];
+					double value = Double.parseDouble(rs.getString(i + 1));
+					QueryResult queryResult = new QueryResult(query, value);
+					results.add(queryResult);
+				}
+			} else {
+				// No result when query with given filter
+				logger.log("No result when query");
+			}
+			rs.close();
+			con.close();
+			
+		} catch (SQLException sqle) {
+			logger.log("DB ERROR:" + sqle.toString());
+			sqle.printStackTrace();
+		}
+        
+        
 		// Create and populate a separate response object for function output
 		Response response = new Response();
-
+		response.setResults(results);
+		
 		// Add all attributes of a response object to FaaS Inspector
 		inspector.consumeResponse(response);
 
