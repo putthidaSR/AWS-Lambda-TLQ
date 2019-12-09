@@ -4,8 +4,5 @@
 **/target
 **/.DS_Store
 **/.project
-app/bin/*
-app/composition1/target/*
-app/composition2/target/*
-app/composition3/target/*
-app/composition4/target/*
+java/bin/*
+java/src/*
