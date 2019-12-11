@@ -177,16 +177,17 @@ public class LoadService implements RequestHandler<Request, HashMap<String, Obje
 		scanner.close();
 		File file = new File("/tmp/" + dbname);
 
-		//s3Client.putObject(new PutObjectRequest(bucketName, "SalesRecordsDB/" + dbname , file)); 
+		// s3Client.putObject(new PutObjectRequest(bucketName, "SalesRecordsDB/" +
+		// dbname , file));
 		s3Client.putObject(bucketName, "SalesRecordsDB/" + dbname, file);
 		file.delete();
 
 		// Create and populate a separate response object for function output
 		Response response = new Response();
-		
+
 		String msg = "Bucket: " + bucketName + " filename: " + fileName + " loaded. DBname: " + dbname;
-        logger.log(msg);
-        response.setValue(msg);
+		logger.log(msg);
+		response.setValue(msg);
 		logger.log("Finished creating new file on S3");
 
 		// Add all attributes of a response object to FaaS Inspector

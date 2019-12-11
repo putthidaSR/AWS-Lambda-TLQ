@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # JSON object to pass to Service 1 - Data Transformation
-json={"\"bucketName\"":"\"tcss562-fall2019-group7\"","\"fileName\"":"\"OriginalSalesRecords.csv\""}
+json={"\"bucketName\"":"\"tcss562-fall2019-group7\"","\"fileName\"":"\"10000-Sales-Records.csv\""}
 
 echo $json
 echo "Invoking Service 1 using AWS CLI"

@@ -16,6 +16,9 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 
 import uwt.inspector.Inspector;
 import uwt.model.QueryResult;
@@ -43,7 +46,7 @@ public class QueryService implements RequestHandler<Request, HashMap<String, Obj
 
 		// Create logger
 		LambdaLogger logger = context.getLogger();
-		logger.log("Begin data transformation service");
+		logger.log("Begin data query service");
 
 		// Register function
 		Inspector inspector = new Inspector();
@@ -65,15 +68,17 @@ public class QueryService implements RequestHandler<Request, HashMap<String, Obj
 
 		String bucketname = request.getBucketname();
 		String filename = request.getFilename();
-		String[] names = filename.split("/");
-		String dbname = names[names.length - 1];
+		String dbname = "transformData.db";
 
+		logger.log(String.format("Attempt to read file [%s] from S3 bucket: %s", filename, bucketname));
 		AmazonS3 s3Client = AmazonS3ClientBuilder.standard().build();
 
 		// Get db file using source bucket and srcKey name and save to /tmp
 		File file = new File("/tmp/" + dbname);
 		s3Client.getObject(new GetObjectRequest(bucketname, filename), file);
 
+		logger.log(String.format("Retrieve file [%s] from S3 bucket: %s", filename, bucketname));
+		
 		// StringBuilder sb = new StringBuilder();
 		List<QueryResult> results = new LinkedList<>();
 
@@ -81,6 +86,8 @@ public class QueryService implements RequestHandler<Request, HashMap<String, Obj
         	
             // Connection string for a file-based SQlite DB
             Connection con = DriverManager.getConnection("jdbc:sqlite:" + dbname); 
+			
+			logger.log("Connection to SQLite has been established.");
 
             // Detect if the table 'salesrecords' exists in the database
             PreparedStatement ps = con.prepareStatement(
@@ -96,6 +103,8 @@ public class QueryService implements RequestHandler<Request, HashMap<String, Obj
             }
             rs.close();
 
+            logger.log("Begin filtering");
+            
 			// create query from request
 			String query = "";
 			// Check if filter argument is passed
@@ -107,6 +116,9 @@ public class QueryService implements RequestHandler<Request, HashMap<String, Obj
 			ps = con.prepareStatement(query);
 			rs = ps.executeQuery();
 
+			
+			logger.log("Apply aggregation");
+			
 			// Write query result to output
 			String[] aggregations = aggregation.split(",");
 			if (rs.next()) {
@@ -114,6 +126,7 @@ public class QueryService implements RequestHandler<Request, HashMap<String, Obj
 					query = aggregations[i];
 					double value = Double.parseDouble(rs.getString(i + 1));
 					QueryResult queryResult = new QueryResult(query, value);
+					logger.log("RESULT after query: " + queryResult.toString());
 					results.add(queryResult);
 				}
 			} else {
@@ -127,17 +140,28 @@ public class QueryService implements RequestHandler<Request, HashMap<String, Obj
 			logger.log("DB ERROR:" + sqle.toString());
 			sqle.printStackTrace();
 		}
+
+        // Create and populate a separate response object for function output
+     	Response response = new Response();
+     		
+        logger.log("RESULTS:");
+        String values = "";
+        for (QueryResult result : results) {
+        	logger.log(result.toString());
+        	values += result.toString();
+        }
+        response.setValue(values);
+		//response.setResults(results);
+
+        Gson gson = new Gson();
         
         
-		// Create and populate a separate response object for function output
-		Response response = new Response();
-		response.setResults(results);
-		
 		// Add all attributes of a response object to FaaS Inspector
 		inspector.consumeResponse(response);
 
 		// Collect final information such as total runtime and cpu deltas.
 		inspector.inspectAllDeltas();
+		logger.log("Finished data transformation service");
 		return inspector.finish();
 
 	}
@@ -160,5 +184,19 @@ public class QueryService implements RequestHandler<Request, HashMap<String, Obj
 
 		return result;
 	}
+	
+//	public static JsonArray convertToJSON(ResultSet resultSet)
+//            throws Exception {
+//		JsonArray jsonArray = new JsonArray();
+//        while (resultSet.next()) {
+//            int total_columns = resultSet.getMetaData().getColumnCount();
+//            JsonObject obj = new JsonObject();
+//            for (int i = 0; i < total_columns; i++) {
+//                obj.put(resultSet.getMetaData().getColumnLabel(i + 1).toLowerCase(), resultSet.getObject(i + 1));
+//            }
+//          jsonArray.put(obj);
+//        }
+//        return jsonArray;
+//    }
 
 }
