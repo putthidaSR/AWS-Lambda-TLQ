@@ -49,7 +49,7 @@ public class QueryService implements RequestHandler<Request, HashMap<String, Obj
 
 		// Register function
 		Inspector inspector = new Inspector();
-        inspector.inspectAll();
+		inspector.inspectAll();
 
 		setCurrentDirectory("/tmp");
      	
@@ -81,55 +81,54 @@ public class QueryService implements RequestHandler<Request, HashMap<String, Obj
 
 			logger.log("Connection to SQLite has been established.");
 
-            // Detect if the table 'salesrecords' exists in the database
-            PreparedStatement ps = con.prepareStatement(
-            		"SELECT name FROM sqlite_master WHERE type='table' AND name='salesrecords'"
-                );
-            
-            ResultSet rs = ps.executeQuery();
-            
-            if (!rs.next()) {
-                // 'salesrecords' does not exist, read from S3
-                logger.log("No such table: 'salesrecords'");
-                
-                logger.log(String.format("Attempt to read file [%s] from S3 bucket: %s", filename, bucketname));
-        		AmazonS3 s3Client = AmazonS3ClientBuilder.standard().build();
+			// Detect if the table 'salesrecords' exists in the database
+			PreparedStatement ps = con
+					.prepareStatement("SELECT name FROM sqlite_master WHERE type='table' AND name='salesrecords'");
 
-        		// Get db file using source bucket and srcKey name and save to /tmp
-        		File file = new File("/tmp/" + dbname);
-        		s3Client.getObject(new GetObjectRequest(bucketname, filename), file);
+			ResultSet rs = ps.executeQuery();
 
-        		logger.log(String.format("Retrieve file [%s] from S3 bucket: %s", filename, bucketname));
-            }
-            rs.close();
+			if (!rs.next()) {
+				// 'salesrecords' does not exist, read from S3
+				logger.log("No such table: 'salesrecords'");
 
-            logger.log("Begin data filtering and aggregation");
-            
+				logger.log(String.format("Attempt to read file [%s] from S3 bucket: %s", filename, bucketname));
+				AmazonS3 s3Client = AmazonS3ClientBuilder.standard().build();
+
+				// Get db file using source bucket and srcKey name and save to /tmp
+				File file = new File("/tmp/" + dbname);
+				s3Client.getObject(new GetObjectRequest(bucketname, filename), file);
+
+				logger.log(String.format("Retrieve file [%s] from S3 bucket: %s", filename, bucketname));
+			}
+			rs.close();
+
+			logger.log("Begin data filtering and aggregation");
+
 			// create query from request
 			String query = "";
-			
+
 			// Check if filter argument is passed
 			if (StringUtils.isNullOrEmpty(filter) || filter.equals("*")) {
 				query = "SELECT " + aggregation + " FROM salesrecords";
 			} else {
 				query = "SELECT " + aggregation + " FROM salesrecords WHERE " + filter;
 			}
-			
+
 			// Append groupBy if the agrument is passed
 			if (!StringUtils.isNullOrEmpty(groupBy)) {
 				query = query + " GROUP BY " + groupBy;
 			}
-			
+
 			ps = con.prepareStatement(query);
 			rs = ps.executeQuery();
 			logger.log("RESULTS: ---");
-			
+
 			jsonArray = convertToJSON(rs);
 			logger.log(jsonArray.toString(4));
-			
+
 			rs.close();
 			con.close();
-			
+
 		} catch (SQLException sqle) {
 			logger.log("DB ERROR:" + sqle.toString());
 			sqle.printStackTrace();
@@ -137,20 +136,20 @@ public class QueryService implements RequestHandler<Request, HashMap<String, Obj
 			logger.log("EXCEPTION THROWN:" + e.toString());
 		}
 
-        logger.log("RESULTS:");
-        logger.log(jsonArray.toString(4));
+		logger.log("RESULTS:");
+		logger.log(jsonArray.toString(4));
 
-        // Create and populate a separate response object for function output
-     	Response response = new Response();
-        response.setQueryJsonOutput(jsonArray.toString(4));
-        
+		// Create and populate a separate response object for function output
+		Response response = new Response();
+		response.setQueryJsonOutput(jsonArray.toString(4));
+
 		// Add all attributes of a response object to FaaS Inspector
 		inspector.consumeResponse(response);
 
 		// Collect final information such as total runtime and cpu deltas.
 		inspector.inspectAllDeltas();
 		logger.log("Finished data filtering and aggregation service");
-        
+
 		return inspector.finish();
 
 	}
