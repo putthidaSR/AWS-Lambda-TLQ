@@ -1,2 +1,2 @@
-python/pandas-layers
-python/sample_data
+pandas-layers/*
+sample_data/*
