@@ -71,10 +71,16 @@ public class TransformService implements RequestHandler<Request, HashMap<String,
 		// Transform the input data and return character stream that will be used to
 		// write a new file
         
+		// Create and populate a separate response object for function output
+		Response response = new Response();
+		
         long tStart = System.currentTimeMillis();
         
 		StringWriter outputFile = transformData(objectData, logger);
-
+		
+		long tEnd = System.currentTimeMillis();
+        response.setTransformRuntime(TimeUnit.MILLISECONDS.toSeconds(tEnd - tStart));
+        
 		// Create metadata for describing the file to be written to S3 and create the
 		// new file on Amazon S3
 		byte[] bytes = outputFile.toString().getBytes(StandardCharsets.UTF_8);
@@ -89,14 +95,9 @@ public class TransformService implements RequestHandler<Request, HashMap<String,
 
 		// Create new file on S3
 		s3Client.putObject(bucketName, newFileNameAfterDataTransform, inputStream, meta);
-
-		// Create and populate a separate response object for function output
-		Response response = new Response();
+		
 		response.setValue("Bucket: " + bucketName + ", filename: " + newFileNameAfterDataTransform + " processed.");
 		
-		long tEnd = System.currentTimeMillis();
-        response.setRuntime(TimeUnit.MILLISECONDS.toSeconds(tEnd - tStart));
-        
 		logger.log("Finished creating new file on S3");
 
 		// Add all attributes of a response object to FaaS Inspector

@@ -9,6 +9,24 @@ echo "Invoking Service 3 - Data Filtering and Aggregation"
 time output=`aws lambda invoke --invocation-type RequestResponse --function-name service3_data_filter_aggregation --region us-east-1 --payload $json /dev/stdout | head -n 1| sed 's/.$//'; echo`
 
 echo ""
-echo "INVOKE RESULT:"
+echo "INVOKE RESULT FOR FIRST RUN:"
 echo $output | jq
-echo ""
+
+echo "Calculate Average Runtime"
+
+runtime=0.0
+count=1
+maxRun=2
+while [ $count -le $maxRun ]
+    do
+        output=`aws lambda invoke --invocation-type RequestResponse --function-name service3_data_filter_aggregation --region us-east-1 --payload $json /dev/stdout | head -n 1| sed 's/.$//'; echo`
+        runtime_one=`echo $output | jq '.runtime'`
+        echo $runtime_one
+        runtime=`echo "$runtime_one + $runtime" | bc -l`
+        # ((runtime += $runtime_one))
+        ((count++))
+    done
+
+echo "Avg runtime:"
+echo "$runtime/$maxRun" | bc -l
+

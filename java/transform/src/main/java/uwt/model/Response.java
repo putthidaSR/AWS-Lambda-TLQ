@@ -3,7 +3,7 @@ package uwt.model;
 public class Response {
 
 	private String value;
-	private long runtime;
+	private long transformRuntime;
 
 	public String getValue() {
 		return value;
@@ -13,12 +13,12 @@ public class Response {
 		this.value = value;
 	}
 	
-	public long getRuntime() {
-		return runtime;
+	public long getTransformRuntime() {
+		return transformRuntime;
 	}
 	
-	public void setRuntime(long runtime) {
-		this.runtime = runtime;
+	public void setTransformRuntime(long runtime) {
+		this.transformRuntime = runtime;
 	}
 
 	@Override
