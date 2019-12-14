@@ -23,7 +23,7 @@ def create_table(con, logger):
 							TotalCost float,
 							TotalProfit float,
 							OrderProcessingTime integer,
-							Gross Margin float
+							GrossMargin float
 							);"""
 	try:
 		c = con.cursor()
@@ -36,6 +36,7 @@ def insert_data(con, row):
 	sql = """ INSERT INTO sales VALUES 
 			(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"""
 	cur = con.cursor()
+	#print(row[6])
 	cur.execute(sql, row)
 
 def database_init(data_path, db_path, logger):

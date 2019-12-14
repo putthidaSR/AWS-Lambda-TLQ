@@ -1,8 +1,8 @@
 # Transform process
 
 # comment out when deploy
-import sys
-sys.path.append('../pandas-layers/python/lib/python3.7/site-packages/')
+# import sys
+# sys.path.append('python/lib/python3.7/site-packages/')
 
 import pandas as pd
 def process(filename):
@@ -35,8 +35,10 @@ def process(filename):
 	
 	return data
 
+''' local test
 if __name__ == "__main__":
-	filename = '../sample_data/100_Sales_Records.csv'
+	filename = '../100_Sales_Records.csv'
 	data = process(filename)
-	outputFile = 'processed.csv'
-	data.to_csv(outputFile, index=False)
+	outputFile = '../processed.csv'
+	data.to_csv(outputFile)
+'''

@@ -9,12 +9,12 @@ logger.setLevel(logging.INFO)
 
 def handler(event, context):
 	s3 = boto3.client('s3')
-	inspector = Inspenctor()
+	inspector = Inspector()
 	inspector.inspectAll()
-	inspector.addTimeeStamp("FrameWorkRuntime")
+	inspector.addTimeStamp("FrameWorkRuntime")
 	
-	bucket = even.get("bucketname")
-	key = even.get("filename")
+	bucket = event.get("bucketname")
+	key = event.get("filename")
 	data_path = '/tmp/target.csv'
 	db_path = '/tmp/'+key.split('.')[0]+'.db'
 	
@@ -22,7 +22,7 @@ def handler(event, context):
 	load.database_init(data_path, db_path, logger)
 	s3.upload_file(db_path, bucket, 'target.db')
 
-	inspector.inspectCPUAll()
-	inspector.addAtrribute("DatabaseName", "target.db")
+	inspector.inspectCPUDelta()
+	inspector.addAttribute("DatabaseName", "target.db")
 	return inspector.finish()
 
