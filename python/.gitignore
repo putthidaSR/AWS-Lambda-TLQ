@@ -1,0 +1,5 @@
+pandas-layers/*
+sample_data/*
+**/.csv
+**/.db
+**/.zip
