@@ -6,16 +6,18 @@ public class Request {
 	private String filename;
 	private String filter;
 	private String aggregation;
+	private String groupBy;
 
 	public Request() {
 	}
 
-	public Request(String bucketname, String fileName, String filter, String aggregation) {
+	public Request(String bucketname, String fileName, String filter, String aggregation, String groupBy) {
 		this();
 		this.bucketname = bucketname;
 		this.filename = fileName;
 		this.filter = filter;
 		this.aggregation = aggregation;
+		this.groupBy = groupBy;
 	}
 
 	public String getBucketname() {
@@ -49,4 +51,13 @@ public class Request {
 	public void setAggregation(String aggregation) {
 		this.aggregation = aggregation;
 	}
+	
+	public String getGroupBy() {
+		return groupBy;
+	}
+	
+	public void setGroupBy(String groupBy) {
+		this.groupBy = groupBy;
+	}
+	
 }

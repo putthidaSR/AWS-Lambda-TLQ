@@ -7,8 +7,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
@@ -16,12 +18,9 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
+import com.amazonaws.util.StringUtils;
 
 import uwt.inspector.Inspector;
-import uwt.model.QueryResult;
 import uwt.model.Request;
 import uwt.model.Response;
 
@@ -50,14 +49,16 @@ public class QueryService implements RequestHandler<Request, HashMap<String, Obj
 
 		// Register function
 		Inspector inspector = new Inspector();
-		inspector.inspectAll();
+        inspector.inspectAll();
 
 		setCurrentDirectory("/tmp");
-
+     	
 		/**
-		 * TODO: - Detect database called SaleRecords from S3: SaleRecords DB must exist
-		 * at this point (created in Service #2 - Load) Connect to SQLite DB - Detect
-		 * database called SaleRecords (Order_ID is primary key) - Create query based on
+		 * Implementation steps: 
+		 * 
+		 * - Detect database called SaleRecords from S3: SaleRecords DB must exist
+		 * at this point (created in Service #2 - Load) Connect to SQLite DB 
+		 * - Detect database called SaleRecords (Order_ID is primary key) - Create query based on
 		 * the request parameters from bash script - Write query result as JSON response
 		 * output - Display JSON response in terminal - Consider write the JSON response
 		 * output to a file and upload to S3
@@ -65,28 +66,19 @@ public class QueryService implements RequestHandler<Request, HashMap<String, Obj
 
 		String filter = request.getFilter();
 		String aggregation = request.getAggregation();
+		String groupBy = request.getGroupBy();
 
 		String bucketname = request.getBucketname();
 		String filename = request.getFilename();
 		String dbname = "transformData.db";
 
-		logger.log(String.format("Attempt to read file [%s] from S3 bucket: %s", filename, bucketname));
-		AmazonS3 s3Client = AmazonS3ClientBuilder.standard().build();
+		JSONArray jsonArray = new JSONArray();
 
-		// Get db file using source bucket and srcKey name and save to /tmp
-		File file = new File("/tmp/" + dbname);
-		s3Client.getObject(new GetObjectRequest(bucketname, filename), file);
+		try {
 
-		logger.log(String.format("Retrieve file [%s] from S3 bucket: %s", filename, bucketname));
-		
-		// StringBuilder sb = new StringBuilder();
-		List<QueryResult> results = new LinkedList<>();
+			// Connection string for a file-based SQlite DB
+			Connection con = DriverManager.getConnection("jdbc:sqlite:" + dbname);
 
-        try {
-        	
-            // Connection string for a file-based SQlite DB
-            Connection con = DriverManager.getConnection("jdbc:sqlite:" + dbname); 
-			
 			logger.log("Connection to SQLite has been established.");
 
             // Detect if the table 'salesrecords' exists in the database
@@ -97,73 +89,91 @@ public class QueryService implements RequestHandler<Request, HashMap<String, Obj
             ResultSet rs = ps.executeQuery();
             
             if (!rs.next()) {
-                // 'salesrecords' does not exist, throw exception
+                // 'salesrecords' does not exist, read from S3
                 logger.log("No such table: 'salesrecords'");
-                throw new SQLException("No such table: 'salesrecords'");
+                
+                logger.log(String.format("Attempt to read file [%s] from S3 bucket: %s", filename, bucketname));
+        		AmazonS3 s3Client = AmazonS3ClientBuilder.standard().build();
+
+        		// Get db file using source bucket and srcKey name and save to /tmp
+        		File file = new File("/tmp/" + dbname);
+        		s3Client.getObject(new GetObjectRequest(bucketname, filename), file);
+
+        		logger.log(String.format("Retrieve file [%s] from S3 bucket: %s", filename, bucketname));
             }
             rs.close();
 
-            logger.log("Begin filtering");
+            logger.log("Begin data filtering and aggregation");
             
 			// create query from request
 			String query = "";
+			
 			// Check if filter argument is passed
-			if (filter == null || filter.equals("") || filter.equals("*")) {
+			if (StringUtils.isNullOrEmpty(filter) || filter.equals("*")) {
 				query = "SELECT " + aggregation + " FROM salesrecords";
 			} else {
 				query = "SELECT " + aggregation + " FROM salesrecords WHERE " + filter;
 			}
+			
+			// Append groupBy if the agrument is passed
+			if (!StringUtils.isNullOrEmpty(groupBy)) {
+				query = query + " GROUP BY " + groupBy;
+			}
+			
 			ps = con.prepareStatement(query);
 			rs = ps.executeQuery();
-
+			logger.log("RESULTS: ---");
 			
-			logger.log("Apply aggregation");
+			jsonArray = convertToJSON(rs);
+			logger.log(jsonArray.toString(4));
 			
-			// Write query result to output
-			String[] aggregations = aggregation.split(",");
-			if (rs.next()) {
-				for (int i = 0; i < aggregations.length; i++) {
-					query = aggregations[i];
-					double value = Double.parseDouble(rs.getString(i + 1));
-					QueryResult queryResult = new QueryResult(query, value);
-					logger.log("RESULT after query: " + queryResult.toString());
-					results.add(queryResult);
-				}
-			} else {
-				// No result when query with given filter
-				logger.log("No result when query");
-			}
 			rs.close();
 			con.close();
 			
 		} catch (SQLException sqle) {
 			logger.log("DB ERROR:" + sqle.toString());
 			sqle.printStackTrace();
+		} catch (Exception e) {
+			logger.log("EXCEPTION THROWN:" + e.toString());
 		}
+
+        logger.log("RESULTS:");
+        logger.log(jsonArray.toString(4));
 
         // Create and populate a separate response object for function output
      	Response response = new Response();
-     		
-        logger.log("RESULTS:");
-        String values = "";
-        for (QueryResult result : results) {
-        	logger.log(result.toString());
-        	values += result.toString();
-        }
-        response.setValue(values);
-		//response.setResults(results);
-
-        Gson gson = new Gson();
-        
+        response.setQueryJsonOutput(jsonArray.toString(4));
         
 		// Add all attributes of a response object to FaaS Inspector
 		inspector.consumeResponse(response);
 
 		// Collect final information such as total runtime and cpu deltas.
 		inspector.inspectAllDeltas();
-		logger.log("Finished data transformation service");
+		logger.log("Finished data filtering and aggregation service");
+        
 		return inspector.finish();
 
+	}
+	
+	/**
+	 * Convert ResultSet in DB format to JSON
+	 * Source: http://biercoff.com/nice-and-simple-converter-of-java-resultset-into-jsonarray-or-xml/
+	 */
+	public static JSONArray convertToJSON(ResultSet resultSet) {
+		JSONArray jsonArray = new JSONArray();
+		try {
+			while (resultSet.next()) {
+				int total_rows = resultSet.getMetaData().getColumnCount();
+				for (int i = 0; i < total_rows; i++) {
+					JSONObject obj = new JSONObject();
+					obj.put(resultSet.getMetaData().getColumnLabel(i + 1).toLowerCase(), resultSet.getObject(i + 1));
+					jsonArray.put(obj);
+				}
+			}
+		} catch (JSONException | SQLException e) {
+			e.printStackTrace();
+		}
+		return jsonArray;
 	}
 	
 	/**
@@ -184,19 +194,5 @@ public class QueryService implements RequestHandler<Request, HashMap<String, Obj
 
 		return result;
 	}
-	
-//	public static JsonArray convertToJSON(ResultSet resultSet)
-//            throws Exception {
-//		JsonArray jsonArray = new JsonArray();
-//        while (resultSet.next()) {
-//            int total_columns = resultSet.getMetaData().getColumnCount();
-//            JsonObject obj = new JsonObject();
-//            for (int i = 0; i < total_columns; i++) {
-//                obj.put(resultSet.getMetaData().getColumnLabel(i + 1).toLowerCase(), resultSet.getObject(i + 1));
-//            }
-//          jsonArray.put(obj);
-//        }
-//        return jsonArray;
-//    }
 
 }

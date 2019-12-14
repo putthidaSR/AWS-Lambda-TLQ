@@ -427,7 +427,7 @@ public class Inspector {
     public void consumeResponse(Response response) {
         Map<String, Object> responseMap = beanProperties(response);
         responseMap.keySet().forEach((s) -> {
-            attributes.put(s, responseMap.get(s));
+            attributes.put(s, String.valueOf(responseMap.get(s)));
         });
     }
 
@@ -507,30 +507,55 @@ public class Inspector {
      * 
      * @author https://bit.ly/2ZGg4uW
      */
-    private static Map<String, Object> beanProperties(Object bean) {
+    public static Map<String, Object> beanProperties(Object bean) {
         try {
-            return Arrays.asList(
-                Introspector.getBeanInfo(bean.getClass(), Object.class)
-                    .getPropertyDescriptors()
-                ).stream()
-                // filter out properties with setters only
-                .filter(pd -> Objects.nonNull(pd.getReadMethod()))
-                .collect(Collectors.toMap(
-                        // bean property name
-                        PropertyDescriptor::getName,
-                        pd -> { // invoke method to get value
-                            try {
-                                return pd.getReadMethod().invoke(bean);
-                            } catch (IllegalAccessException
-                            | IllegalArgumentException
-                            | InvocationTargetException e) {
-                                // replace this with better error handling
-                                return null;
-                            }
-                        }));
+            Map<String, Object> map = new HashMap<>();
+            Arrays.asList(Introspector.getBeanInfo(bean.getClass(), Object.class)
+                                      .getPropertyDescriptors())
+                  .stream()
+                  // filter out properties with setters only
+                  .filter(pd -> Objects.nonNull(pd.getReadMethod()))
+                  .forEach(pd -> { // invoke method to get value
+                      try {
+                          Object value = pd.getReadMethod().invoke(bean);
+                          if (value != null) {
+                              map.put(pd.getName(), value);
+                          }
+                      } catch (Exception e) {
+                          // add proper error handling here
+                      }
+                  });
+            return map;
         } catch (IntrospectionException e) {
-            // and this, too
+            // and here, too
             return Collections.emptyMap();
         }
     }
+    
+	// private static Map<String, Object> beanProperties(Object bean) {
+	// try {
+	// return Arrays.asList(
+	// Introspector.getBeanInfo(bean.getClass(), Object.class)
+	// .getPropertyDescriptors()
+	// ).stream()
+	// // filter out properties with setters only
+	// .filter(pd -> Objects.nonNull(pd.getReadMethod()))
+	// .collect(Collectors.toMap(
+	// // bean property name
+	// PropertyDescriptor::getName,
+	// pd -> { // invoke method to get value
+	// try {
+	// return pd.getReadMethod().invoke(bean);
+	// } catch (IllegalAccessException
+	// | IllegalArgumentException
+	// | InvocationTargetException e) {
+	// // replace this with better error handling
+	// return null;
+	// }
+	// }));
+	// } catch (IntrospectionException | NullPointerException e) {
+	// // and this, too
+	// return Collections.emptyMap();
+	// }
+	// }
 }
