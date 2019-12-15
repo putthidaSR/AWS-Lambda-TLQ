@@ -20,7 +20,46 @@ The application is implemented to help us conduct the experiement to investigate
 - Java: Maven
 
 ## Project Stuctures
-
+```bash
+├── java
+│   ├── load
+│   │   ├── src/main/java/uwt
+│   │   │   ├── inspector
+│   │   │   ├── lambda
+│   │   │   └── model
+│   │   ├── test
+│   │   └── pom.xml
+│   ├── query
+│   │   ├── src/main/java/uwt
+│   │   │   ├── inspector
+│   │   │   ├── lambda
+│   │   │   └── model
+│   │   ├── test
+│   │   └── pom.xml
+│   └── transform
+│   │   ├── src/main/java/uwt
+│   │   │   ├── inspector
+│   │   │   ├── lambda
+│   │   │   └── model
+│   │   ├── test
+│   │   └── pom.xml
+├── python
+│   ├── load
+│   │   ├── Inspector.py
+│   │   ├── lambda.py
+│   │   └── load.py
+│   ├── query
+│   │   ├── Inspector.py
+│   │   ├── lambda_function.py
+│   │   └── query.py
+│   └── transform
+│       ├── Inspector.py
+│       ├── lambda.py
+│       └── Transform.py
+├── test
+├── README.md
+└── .gitignore
+```
 
 
 
