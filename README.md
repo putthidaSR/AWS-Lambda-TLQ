@@ -11,9 +11,7 @@ The application is implemented to help us conduct the experiement to investigate
 - What are the cost differences between deploying Python and Java functions in AWS Lambda?
 
 ## Technology / Tools Used
-- Programming Languages
--- Java 8
--- Python 3.7
+- Programming Languages: Java 8, Python 3.7
 - AWS S3
 - AWS Lambda
 - AWS CLI
