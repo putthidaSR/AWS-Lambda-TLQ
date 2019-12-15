@@ -124,7 +124,7 @@ public class QueryService implements RequestHandler<Request, HashMap<String, Obj
 			logger.log("RESULTS: ---");
 
 			jsonArray = convertToJSON(rs);
-			logger.log(jsonArray.toString(4));
+			//logger.log(jsonArray.toString(4));
 
 			rs.close();
 			con.close();

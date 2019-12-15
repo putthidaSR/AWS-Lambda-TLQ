@@ -16,7 +16,7 @@ echo "Calculate Average Runtime"
 
 runtime=0.0
 count=1
-maxRun=2
+maxRun=100
 while [ $count -le $maxRun ]
     do
         output=`aws lambda invoke --invocation-type RequestResponse --function-name service3_data_filter_aggregation --region us-east-1 --payload $json /dev/stdout | head -n 1| sed 's/.$//'; echo`

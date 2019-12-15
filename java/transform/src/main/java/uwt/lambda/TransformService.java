@@ -79,7 +79,7 @@ public class TransformService implements RequestHandler<Request, HashMap<String,
 		StringWriter outputFile = transformData(objectData, logger);
 		
 		long tEnd = System.currentTimeMillis();
-        response.setTransformRuntime(TimeUnit.MILLISECONDS.toSeconds(tEnd - tStart));
+        response.setTransformRuntime(tEnd - tStart);
         
 		// Create metadata for describing the file to be written to S3 and create the
 		// new file on Amazon S3
@@ -147,18 +147,18 @@ public class TransformService implements RequestHandler<Request, HashMap<String,
 				continue;
 			}
 			orderIdSet.add(orderId);
-			logger.log("Set of Order ID: " + orderIdSet.toString());
+			//logger.log("Set of Order ID: " + orderIdSet.toString());
 			
 			// Calculate order processing days
 			//logger.log("Test order processing days: ");
 			//logger.log(token[5]);
 			//logger.log(token[7]);
 			long processingDays = getNumberOfProccessingDays(token[5], token[7]);
-			logger.log("Order processing days: " + processingDays);
+			//logger.log("Order processing days: " + processingDays);
 
 			// Calculate Gross Margin
 			double grossMargin = getGrossMargin(token[token.length - 1], token[token.length - 3]);
-			logger.log("Gross margin: " + grossMargin);
+			//logger.log("Gross margin: " + grossMargin);
 
 			// Transform order priority value
 			String newOrderPriortyValue = transformOrderPriority(token[4]);
@@ -169,7 +169,7 @@ public class TransformService implements RequestHandler<Request, HashMap<String,
 			String lastToken = String.format(",%d,%.2f\n", processingDays, grossMargin);
 
 			line += lastToken;
-			logger.log("Line to be written to the file after transformation:\n" + line);
+			//logger.log("Line to be written to the file after transformation:\n" + line);
 
 			outputFile.append(line);
 		}

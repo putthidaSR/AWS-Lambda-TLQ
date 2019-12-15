@@ -54,7 +54,7 @@ public class LoadService implements RequestHandler<Request, HashMap<String, Obje
 		setCurrentDirectory("/tmp");
 
 		/**
-		 * TODO plan: 
+		 * Implementation plan: 
 		 * - Scanning data line by line 
 		 * - Create database called SaleRecords
 		 * (Order_ID is primary key) 
@@ -67,9 +67,7 @@ public class LoadService implements RequestHandler<Request, HashMap<String, Obje
 		String fileName = request.getFileName();
 
 		String dbname = "transformData.db";
-
-		// TODO: Get the object file from S3 (naming from must match whatever specified
-		// in Transformation Service)
+		
 		logger.log(String.format("Attempt to read file [%s] from S3 bucket: %s", fileName, bucketName));
 		AmazonS3 s3Client = AmazonS3ClientBuilder.standard().build();
 		S3Object s3Object = s3Client.getObject(new GetObjectRequest(bucketName, fileName));
@@ -85,8 +83,6 @@ public class LoadService implements RequestHandler<Request, HashMap<String, Obje
 		try {
 
 			// Connection string for a file-based SQlite DB
-			//Connection con = DriverManager.getConnection("jdbc:sqlite:" + dbname);
-			
 			String url = "jdbc:sqlite:transformData.db";
 			Connection con = DriverManager.getConnection(url);
 			
@@ -134,9 +130,6 @@ public class LoadService implements RequestHandler<Request, HashMap<String, Obje
 			ps.execute();
 			ps.close();
 
-			logger.log("DB insertion start.");
-			// int count = 0;
-
 			// Insert row into salesrecords
 			while (scanner.hasNext()) {
 
@@ -156,10 +149,6 @@ public class LoadService implements RequestHandler<Request, HashMap<String, Obje
 				ps = con.prepareStatement("INSERT INTO salesrecords values(" + line + ");");
 				ps.execute();
 				ps.close();
-
-				// if (count % 100000 == 0)
-				// logger.log("10W records inserted");
-				// count ++;
 			}
 
 			ps = con.prepareStatement("COMMIT");
@@ -167,7 +156,6 @@ public class LoadService implements RequestHandler<Request, HashMap<String, Obje
 			ps.close();
 
 			con.close();
-			logger.log("DB insertion end.");
 
 		} catch (SQLException sqle) {
 			logger.log("DB ERROR:" + sqle.toString());
@@ -177,16 +165,13 @@ public class LoadService implements RequestHandler<Request, HashMap<String, Obje
 		scanner.close();
 		File file = new File("/tmp/" + dbname);
 
-		// s3Client.putObject(new PutObjectRequest(bucketName, "SalesRecordsDB/" +
-		// dbname , file));
 		s3Client.putObject(bucketName, "SalesRecordsDB/" + dbname, file);
-		file.delete();
+		file.delete(); // delete local DB file stored in disk
 
 		// Create and populate a separate response object for function output
 		Response response = new Response();
 
 		String msg = "Bucket: " + bucketName + " filename: " + fileName + " loaded. DBname: " + dbname;
-		logger.log(msg);
 		response.setValue(msg);
 		logger.log("Finished creating new file on S3");
 
@@ -195,7 +180,6 @@ public class LoadService implements RequestHandler<Request, HashMap<String, Obje
 
 		// Collect final information such as total runtime and cpu deltas.
 		inspector.inspectAllDeltas();
-		logger.log("Finished data transformation service");
 		return inspector.finish();
 
 	}
